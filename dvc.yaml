@@ -1,0 +1,5 @@
+stages:
+  dataset_upload:
+    cmd: echo "Dataset versioned"
+    deps:
+      - data/datasets

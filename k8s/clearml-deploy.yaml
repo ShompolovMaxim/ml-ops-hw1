@@ -1,0 +1,275 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: clearml
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: clearml-mongo
+  namespace: clearml
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: clearml-mongo
+  template:
+    metadata:
+      labels:
+        app: clearml-mongo
+    spec:
+      containers:
+        - name: mongo
+          image: mongo:5.0
+          ports:
+            - containerPort: 27017
+          volumeMounts:
+            - name: mongo-data
+              mountPath: /data/db
+      volumes:
+        - name: mongo-data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: clearml-mongo
+  namespace: clearml
+spec:
+  selector:
+    app: clearml-mongo
+  ports:
+    - port: 27017
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: clearml-redis
+  namespace: clearml
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: clearml-redis
+  template:
+    metadata:
+      labels:
+        app: clearml-redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          ports:
+            - containerPort: 6379
+          volumeMounts:
+            - name: redis-data
+              mountPath: /data
+      volumes:
+        - name: redis-data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: clearml-redis
+  namespace: clearml
+spec:
+  selector:
+    app: clearml-redis
+  ports:
+    - port: 6379
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: clearml-elasticsearch
+  namespace: clearml
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: clearml-elasticsearch
+  template:
+    metadata:
+      labels:
+        app: clearml-elasticsearch
+    spec:
+      containers:
+        - name: elasticsearch
+          image: docker.elastic.co/elasticsearch/elasticsearch:7.17.9
+          env:
+            - name: discovery.type
+              value: "single-node"
+            - name: xpack.security.enabled
+              value: "false"
+            - name: ES_JAVA_OPTS
+              value: "-Xms256m -Xmx256m"
+          ports:
+            - containerPort: 9200
+          volumeMounts:
+            - name: es-data
+              mountPath: /usr/share/elasticsearch/data
+      volumes:
+        - name: es-data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: clearml-elasticsearch
+  namespace: clearml
+spec:
+  selector:
+    app: clearml-elasticsearch
+  ports:
+    - port: 9200
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: clearml-apiserver
+  namespace: clearml
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: clearml-apiserver
+  template:
+    metadata:
+      labels:
+        app: clearml-apiserver
+    spec:
+      initContainers: []
+      containers:
+        - name: apiserver
+          image: clearml/server:latest
+          args: ["apiserver"]
+          env:
+            - name: CLEARML_ELASTIC_SERVICE_HOST
+              value: clearml-elasticsearch
+            - name: CLEARML_ELASTIC_SERVICE_PORT
+              value: "9200"
+            - name: CLEARML_MONGODB_SERVICE_HOST
+              value: clearml-mongo
+            - name: CLEARML_MONGODB_SERVICE_PORT
+              value: "27017"
+            - name: CLEARML_REDIS_SERVICE_HOST
+              value: clearml-redis
+            - name: CLEARML_REDIS_SERVICE_PORT
+              value: "6379"
+            - name: CLEARML_AUTH_ENABLE
+              value: "false"
+            - name: CLEARML_DEFAULT_DISABLED_AUTH
+              value: "true"
+          ports:
+            - containerPort: 8008
+          volumeMounts:
+            - name: server-data
+              mountPath: /mnt/fileserver
+            - name: clearml-secure-config
+              mountPath: /opt/clearml/config/secure.conf
+              subPath: secure.conf
+      volumes:
+        - name: server-data
+          emptyDir: {}
+        - name: clearml-secure-config
+          configMap:
+            name: clearml-secure-config
+            items:
+              - key: secure.conf
+                path: secure.conf
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: clearml-apiserver
+  namespace: clearml
+spec:
+  selector:
+    app: clearml-apiserver
+  ports:
+    - port: 8008
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: clearml-webserver
+  namespace: clearml
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: clearml-webserver
+  template:
+    metadata:
+      labels:
+        app: clearml-webserver
+    spec:
+      containers:
+        - name: webserver
+          image: clearml/server:latest
+          args: ["webserver"]
+          ports:
+            - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: clearml-webserver
+  namespace: clearml
+spec:
+  selector:
+    app: clearml-webserver
+  ports:
+    - port: 80
+      targetPort: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: clearml-fileserver
+  namespace: clearml
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: clearml-fileserver
+  template:
+    metadata:
+      labels:
+        app: clearml-fileserver
+    spec:
+      initContainers: []
+      containers:
+        - name: fileserver
+          image: clearml/server:latest
+          args: ["fileserver"]
+          env:
+            - name: CLEARML_MONGODB_SERVICE_HOST
+              value: clearml-mongo
+            - name: CLEARML_MONGODB_SERVICE_PORT
+              value: "27017"
+            - name: CLEARML_REDIS_SERVICE_HOST
+              value: clearml-redis
+            - name: CLEARML_REDIS_SERVICE_PORT
+              value: "6379"
+          ports:
+            - containerPort: 8081
+          volumeMounts:
+            - name: server-data
+              mountPath: /mnt/fileserver
+      volumes:
+        - name: server-data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: clearml-fileserver
+  namespace: clearml
+spec:
+  selector:
+    app: clearml-fileserver
+  ports:
+    - port: 8081
+      targetPort: 8081

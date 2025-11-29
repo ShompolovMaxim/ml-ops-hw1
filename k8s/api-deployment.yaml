@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ml-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ml-api
+  template:
+    metadata:
+      labels:
+        app: ml-api
+    spec:
+      initContainers:
+        - name: copy-clearml-config
+          image: ml-api:latest
+          imagePullPolicy: Never
+          command: ['sh', '-c', 'cp /etc/clearml/clearml.conf /root/.clearml/clearml.conf && echo "ClearML config copied"']
+          volumeMounts:
+            - name: clearml-config
+              mountPath: /etc/clearml
+            - name: clearml-home
+              mountPath: /root/.clearml
+      containers:
+        - name: ml-api
+          image: ml-api:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8000
+          livenessProbe:
+            tcpSocket:
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          env:
+          - name: S3_ENDPOINT
+            value: http://minio:9000
+          - name: S3_ACCESS_KEY
+            value: minioadmin
+          - name: S3_SECRET_KEY
+            value: minioadmin
+          - name: DVC_REMOTE
+            value: s3
+          - name: DVC_CACHE_DIR
+            value: /root/.cache/dvc
+
+          - name: CLEARML_API_HOST
+            value: http://clearml-apiserver.clearml.svc.cluster.local:8008
+          - name: CLEARML_API_ACCESS_KEY
+            valueFrom:
+              secretKeyRef:
+                name: clearml-credentials
+                key: api_key
+          - name: CLEARML_API_SECRET_KEY
+            valueFrom:
+              secretKeyRef:
+                name: clearml-credentials
+                key: api_secret
+
+          - name: AWS_REGION
+            value: us-east-1
+          - name: CLEARML_CONFIG_PATH
+            value: /root/.clearml/clearml.conf
+          - name: CLEARML_HOME
+            value: /root/.clearml
+          - name: MODEL_API_TIMEOUT
+            value: "300"
+          volumeMounts:
+            - name: dvc-cache
+              mountPath: /api/data/datasets
+            - name: clearml-config
+              mountPath: /etc/clearml
+            - name: clearml-home
+              mountPath: /root/.clearml
+      volumes:
+        - name: dvc-cache
+          persistentVolumeClaim:
+            claimName: dvc-cache-pvc
+        - name: clearml-config
+          configMap:
+            name: clearml-config
+        - name: clearml-home
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ml-api
+spec:
+  type: NodePort
+  selector:
+    app: ml-api
+  ports:
+    - port: 80
+      targetPort: 8000
+      nodePort: 30001
