@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: clearml-secure-config
+  namespace: clearml
+data:
+  secure.conf: |
+    {
+      credentials {
+        ml_api {
+          role: "user"
+          display_name: "ml-api"
+          user_key: "mlapi_AUTO_GENERATED_KEY_12345"
+          user_secret: "mlapi_AUTO_GENERATED_SECRET_abcdEFGH"
+        }
+      }
+    }

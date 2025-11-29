@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ml-dashboard
+  labels:
+    app: ml-dashboard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ml-dashboard
+  template:
+    metadata:
+      labels:
+        app: ml-dashboard
+    spec:
+      containers:
+      - name: dashboard
+        image: ml-dashboard:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8501
+          name: streamlit
+        command: 
+        - streamlit
+        - run
+        - /app/dash/main.py
+        - --server.port=8501
+        - --server.address=0.0.0.0
+        env:
+        - name: API_HOST
+          value: "ml-api:8000"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ml-dashboard
+  labels:
+    app: ml-dashboard
+spec:
+  type: NodePort
+  ports:
+  - port: 8501
+    targetPort: 8501
+    nodePort: 30502
+    protocol: TCP
+    name: streamlit
+  selector:
+    app: ml-dashboard

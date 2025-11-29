@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: clearml-config
+data:
+  clearml.conf: |
+    api:
+      api_server: "http://clearml-apiserver.clearml.svc.cluster.local:8008"
+      web_server: "http://clearml-webserver.clearml.svc.cluster.local:80"
+      files_server: "http://clearml-fileserver.clearml.svc.cluster.local:8081"
+      verify_certificate: false
+      
+    sdk:
+      dev_worker_name: "default"
+      
+    auth:
+      enabled: false
