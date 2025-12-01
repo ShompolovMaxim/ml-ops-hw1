@@ -31,12 +31,14 @@ from clearml.backend_api.session.session import Session
 
 class ClearMLManager:
     """Manager for ClearML integration."""
-    
+
     def __init__(self):
         self.task: Optional[Task] = None
         self.enabled = Task is not None
-    
-    def init_task(self, task_name: str, project_name: str = "ML-OPS-HW1") -> Optional[str]:
+
+    def init_task(
+        self, task_name: str, project_name: str = "ML-OPS-HW1"
+    ) -> Optional[str]:
         """Initialize ClearML task for logging."""
 
         if not self.enabled:
@@ -44,10 +46,14 @@ class ClearMLManager:
             return None
         logger.info(f"Initializing ClearML task: {task_name}")
 
-        api_host = os.environ.get("CLEARML_API_HOST") or os.environ.get("CLEARML_API_SERVER")
+        api_host = os.environ.get("CLEARML_API_HOST") or os.environ.get(
+            "CLEARML_API_SERVER"
+        )
         try:
             resp = requests.get(api_host, timeout=3)
-            logger.info(f"ClearML API reachability check: {api_host} -> {resp.status_code}")
+            logger.info(
+                f"ClearML API reachability check: {api_host} -> {resp.status_code}"
+            )
             server_reachable = resp.status_code < 500
         except Exception as conn_e:
             logger.warning(f"ClearML API not reachable ({api_host}): {conn_e}")
@@ -63,7 +69,7 @@ class ClearMLManager:
                 project_name=project_name,
                 task_name=task_name,
                 auto_connect_frameworks={"scikit-learn": True},
-                reuse_last_task_id=False
+                reuse_last_task_id=False,
             )
             logger.info(f"✓ ClearML task created online: {self.task.id}")
             return self.task.id
@@ -74,17 +80,17 @@ class ClearMLManager:
         try:
             logger.info("Attempting offline mode (Task.create)")
             self.task = TaskClass.create(
-                project_name=project_name,
-                task_name=task_name,
-                task_type='training'
+                project_name=project_name, task_name=task_name, task_type="training"
             )
             logger.info(f"✓ ClearML offline task created: {self.task.id}")
             return self.task.id
         except Exception as offline_e:
-            logger.error(f"✗ Offline mode failed - {type(offline_e).__name__}: {str(offline_e)}")
+            logger.error(
+                f"✗ Offline mode failed - {type(offline_e).__name__}: {str(offline_e)}"
+            )
             logger.warning("ClearML unavailable, continuing without task logging")
             return None
-    
+
     def log_hyperparams(self, hyperparams: Dict[str, Any]) -> None:
         """Log hyperparameters."""
 
@@ -92,57 +98,56 @@ class ClearMLManager:
             return
         try:
             self.task.connect_configuration(
-                configuration_dict=hyperparams,
-                name="hyperparameters"
+                configuration_dict=hyperparams, name="hyperparameters"
             )
             logger.info(f"Hyperparameters logged: {len(hyperparams)} params")
         except Exception as e:
             logger.error(f"Error logging hyperparams: {str(e)}", exc_info=True)
-    
-    def log_scalar(self, title: str, series: str, value: float, iteration: int = 0) -> None:
+
+    def log_scalar(
+        self, title: str, series: str, value: float, iteration: int = 0
+    ) -> None:
         """Log scalar metric."""
         if not self.task:
             return
-        
+
         try:
             self.task.get_logger().report_scalar(
-                title=title,
-                series=series,
-                value=value,
-                iteration=iteration
+                title=title, series=series, value=value, iteration=iteration
             )
             logger.debug(f"Metric logged: {title}/{series} = {value}")
         except Exception as e:
             logger.error(f"Error logging metric: {str(e)}", exc_info=True)
-    
+
     def upload_model_object(self, model_object, model_name: str) -> None:
         """Upload model object as artifact."""
         if not self.task:
             return
-        
+
         try:
-            self.task.upload_artifact(
-                name=model_name,
-                artifact_object=model_object
-            )
+            self.task.upload_artifact(name=model_name, artifact_object=model_object)
             logger.info(f"Model artifact uploaded: {model_name}")
         except Exception as e:
             logger.error(f"Error uploading model: {str(e)}", exc_info=True)
-    
+
     def download_model_object(self, model_name: str):
         """Download model object from artifacts."""
         if not self.task:
-            logger.warning(f"ClearML not available, cannot download model: {model_name}")
+            logger.warning(
+                f"ClearML not available, cannot download model: {model_name}"
+            )
             return None
-        
+
         try:
             model = self.task.download_artifact(name=model_name)
             logger.info(f"Model artifact downloaded: {model_name}")
             return model
         except Exception as e:
-            logger.error(f"Error downloading model {model_name}: {str(e)}", exc_info=True)
+            logger.error(
+                f"Error downloading model {model_name}: {str(e)}", exc_info=True
+            )
             return None
-    
+
     def close(self) -> None:
         """Close task."""
         if self.task:

@@ -11,13 +11,15 @@ st.set_page_config(page_title="ML Dashboard", layout="wide")
 
 st.title("ML Dashboard")
 
-tab_datasets, tab_training, tab_inference = st.tabs(["Datasets", "Training", "Inference"])
+tab_datasets, tab_training, tab_inference = st.tabs(
+    ["Datasets", "Training", "Inference"]
+)
 
 with tab_datasets:
     st.header("Dataset Management")
-    
+
     col1, col2 = st.columns(2)
-    
+
     with col1:
         st.subheader("Available Datasets")
         try:
@@ -32,13 +34,15 @@ with tab_datasets:
                         with col_download:
                             if st.button("Download", key=f"down_ds_{ds}"):
                                 try:
-                                    res = requests.get(f"{API_URL}/datasets/download/{ds}", timeout=10)
+                                    res = requests.get(
+                                        f"{API_URL}/datasets/download/{ds}", timeout=10
+                                    )
                                     if res.status_code == 200:
                                         st.download_button(
                                             label="Save",
                                             data=res.content,
                                             file_name=ds,
-                                            mime="text/csv"
+                                            mime="text/csv",
                                         )
                                     else:
                                         st.error(f"Error: {res.text}")
@@ -47,7 +51,9 @@ with tab_datasets:
                         with col_delete:
                             if st.button("Delete", key=f"del_ds_{ds}"):
                                 try:
-                                    res = requests.delete(f"{API_URL}/datasets/{ds}", timeout=10)
+                                    res = requests.delete(
+                                        f"{API_URL}/datasets/{ds}", timeout=10
+                                    )
                                     if res.status_code == 200:
                                         st.success(f"Deleted: {ds}")
                                         st.rerun()
@@ -59,15 +65,17 @@ with tab_datasets:
                     st.info("No datasets")
         except Exception as e:
             st.error(f"Error: {e}")
-    
+
     with col2:
         st.subheader("Upload Dataset")
         uploaded_file = st.file_uploader("CSV or JSON", type=["csv", "json"])
-        
+
         if uploaded_file and st.button("Upload"):
             try:
                 files = {"file": (uploaded_file.name, uploaded_file)}
-                res = requests.post(f"{API_URL}/datasets/upload", files=files, timeout=30)
+                res = requests.post(
+                    f"{API_URL}/datasets/upload", files=files, timeout=30
+                )
                 if res.status_code == 200:
                     st.success(f"Uploaded: {uploaded_file.name}")
                 else:
@@ -77,22 +85,26 @@ with tab_datasets:
 
 with tab_training:
     st.header("Model Training")
-    
+
     col1, col2, col3 = st.columns(3)
-    
+
     with col1:
         st.subheader("Model Type")
-        model_type = st.selectbox("Select", ["linear_regression", "decision_tree", "random_forest"])
-    
+        model_type = st.selectbox(
+            "Select", ["linear_regression", "decision_tree", "random_forest"]
+        )
+
     with col2:
         st.subheader("Dataset")
         try:
             res = requests.get(f"{API_URL}/datasets", timeout=5)
             datasets = res.json().get("datasets", [])
-            dataset_path = st.selectbox("Select", datasets if datasets else ["No datasets"])
+            dataset_path = st.selectbox(
+                "Select", datasets if datasets else ["No datasets"]
+            )
         except:
             dataset_path = st.text_input("Dataset filename")
-    
+
     with col3:
         st.write("")
         if st.button("Train Model", key="train"):
@@ -100,7 +112,7 @@ with tab_training:
                 res = requests.post(
                     f"{API_URL}/models/train",
                     params={"model_type": model_type, "dataset_path": dataset_path},
-                    timeout=120
+                    timeout=120,
                 )
                 if res.status_code == 200:
                     result = res.json()
@@ -110,7 +122,7 @@ with tab_training:
                     st.error(f"Error: {res.text}")
             except Exception as e:
                 st.error(f"Error: {e}")
-    
+
     st.subheader("Trained Models")
     try:
         res = requests.get(f"{API_URL}/models", timeout=5)
@@ -118,15 +130,21 @@ with tab_training:
             models_list = res.json().get("models", [])
             if models_list:
                 for model in models_list:
-                    model_id = model.get("model_id") if isinstance(model, dict) else model
-                    model_type = model.get("type", "") if isinstance(model, dict) else ""
+                    model_id = (
+                        model.get("model_id") if isinstance(model, dict) else model
+                    )
+                    model_type = (
+                        model.get("type", "") if isinstance(model, dict) else ""
+                    )
                     col1, col2 = st.columns([3, 1])
                     with col1:
                         st.write(f"Model: {model_id}")
                     with col2:
                         if st.button("Delete", key=f"del_{model_id}"):
                             try:
-                                res = requests.delete(f"{API_URL}/models/{model_id}", timeout=10)
+                                res = requests.delete(
+                                    f"{API_URL}/models/{model_id}", timeout=10
+                                )
                                 if res.status_code == 200:
                                     st.success(f"Deleted: {model_id}")
                                     st.rerun()
@@ -141,22 +159,24 @@ with tab_training:
 
 with tab_inference:
     st.header("Prediction")
-    
+
     try:
         res = requests.get(f"{API_URL}/models", timeout=5)
         models_data = res.json().get("models", [])
-        models_list = [m.get("model_id") if isinstance(m, dict) else m for m in models_data]
+        models_list = [
+            m.get("model_id") if isinstance(m, dict) else m for m in models_data
+        ]
     except:
         models_list = []
-    
+
     if not models_list:
         st.warning("No trained models available")
     else:
         col1, col2 = st.columns([2, 1])
-        
+
         with col1:
             model_id = st.selectbox("Model", models_list)
-        
+
         with col2:
             st.write("")
             if st.button("Get Info"):
@@ -166,10 +186,12 @@ with tab_inference:
                         st.json(res.json())
                 except:
                     st.info("Info not available")
-        
+
         st.subheader("Features (JSON)")
-        features_json = st.text_area("Enter JSON", '{"feature_1": 1.0, "feature_2": 2.0}', height=80)
-        
+        features_json = st.text_area(
+            "Enter JSON", '{"feature_1": 1.0, "feature_2": 2.0}', height=80
+        )
+
         if st.button("Predict"):
             try:
                 features = json.loads(features_json)
@@ -177,7 +199,7 @@ with tab_inference:
                 res = requests.post(
                     f"{API_URL}/models/{model_id}/predict",
                     json=features,
-                    timeout=api_timeout
+                    timeout=api_timeout,
                 )
 
                 if res.status_code == 200:

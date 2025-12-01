@@ -18,13 +18,18 @@ class DVCManager:
             logger.info(f"Adding file to DVC: {filepath}")
             subprocess.run(["dvc", "add", filepath], check=True)
             subprocess.run(["git", "add", f"{filepath}.dvc"], check=True)
-            subprocess.run(["git", "commit", "-m", f"add dataset {Path(filepath).name}"], check=True)
+            subprocess.run(
+                ["git", "commit", "-m", f"add dataset {Path(filepath).name}"],
+                check=True,
+            )
             subprocess.run(["dvc", "push"], check=True)
-            
+
             os.remove(filepath)
             logger.info(f"Local file removed (stored in S3): {filepath}")
         except subprocess.CalledProcessError as e:
-            logger.error(f"DVC add_and_push failed for {filepath}: {str(e)}", exc_info=True)
+            logger.error(
+                f"DVC add_and_push failed for {filepath}: {str(e)}", exc_info=True
+            )
             raise
         except Exception as e:
             logger.error(f"Unexpected error in add_and_push: {str(e)}", exc_info=True)
@@ -50,7 +55,7 @@ class DVCManager:
         try:
             logger.info(f"Removing file from DVC: {filepath}")
             subprocess.run(["dvc", "remove", filepath], check=True)
-            
+
             logger.info(f"Pushing removal to S3: {filepath}")
             subprocess.run(["dvc", "push"], check=True)
             logger.info(f"Successfully removed from DVC and S3: {filepath}")
@@ -67,23 +72,25 @@ class DVCManager:
         try:
             datasets = []
             dvc_dir = Path("data/datasets")
-            
+
             if dvc_dir.exists():
                 logger.info(f"Scanning for datasets in {dvc_dir}")
                 for dvc_file in dvc_dir.glob("*.dvc"):
                     dataset_name = dvc_file.stem
                     try:
-                        with open(dvc_file, 'r') as f:
+                        with open(dvc_file, "r") as f:
                             dvc_content = f.read()
                         datasets.append(dataset_name)
                         logger.debug(f"Found dataset: {dataset_name}")
                     except Exception as e:
-                        logger.error(f"Error reading {dvc_file}: {str(e)}", exc_info=True)
-                
+                        logger.error(
+                            f"Error reading {dvc_file}: {str(e)}", exc_info=True
+                        )
+
                 logger.info(f"Total datasets found: {len(datasets)}")
             else:
                 logger.warning(f"Datasets directory not found: {dvc_dir}")
-            
+
             return datasets
         except Exception as e:
             logger.error(f"Error listing S3 datasets: {str(e)}", exc_info=True)
