@@ -78,8 +78,6 @@ class DVCManager:
                 for dvc_file in dvc_dir.glob("*.dvc"):
                     dataset_name = dvc_file.stem
                     try:
-                        with open(dvc_file, "r") as f:
-                            dvc_content = f.read()
                         datasets.append(dataset_name)
                         logger.debug(f"Found dataset: {dataset_name}")
                     except Exception as e:

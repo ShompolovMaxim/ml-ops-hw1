@@ -12,7 +12,6 @@ from typing import Dict, Any, Optional
 from api.dvc_manager import DVCManager
 from api.models import get_model_manager
 import asyncio
-import os
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"

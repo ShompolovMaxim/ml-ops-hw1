@@ -2,8 +2,6 @@
 
 import uuid
 import logging
-import pickle
-from pathlib import Path
 from datetime import datetime
 from typing import Dict, Optional, List
 
@@ -14,10 +12,9 @@ from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
 
 from api.clearml_manager import get_clearml_manager
 
-from clearml import Task as TaskClass, Task
+from clearml import Task
 import os
 import concurrent.futures
-import time
 
 logger = logging.getLogger(__name__)
 

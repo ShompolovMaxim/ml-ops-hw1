@@ -5,6 +5,7 @@ import logging
 import requests
 from pathlib import Path
 from typing import Dict, Any, Optional
+from clearml import Task as TaskClass, Task
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -24,10 +25,6 @@ else:
         os.environ["CLEARML_HOME"] = "/root/.clearml"
 
 os.environ.setdefault("CLEARML_DISABLE_FAILED_CONNECTION_WARNING", "true")
-
-from clearml import Task as TaskClass, Task
-from clearml.backend_api.session.session import Session
-
 
 class ClearMLManager:
     """Manager for ClearML integration."""

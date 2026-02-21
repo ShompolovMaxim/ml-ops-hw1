@@ -4,7 +4,6 @@ import streamlit as st
 import requests
 import json
 import os
-from datetime import datetime
 
 API_URL = "http://ml-api:80"
 st.set_page_config(page_title="ML Dashboard", layout="wide")
@@ -102,7 +101,8 @@ with tab_training:
             dataset_path = st.selectbox(
                 "Select", datasets if datasets else ["No datasets"]
             )
-        except:
+        except Exception as e:
+            st.error(f"Error fetching datasets: {e}")
             dataset_path = st.text_input("Dataset filename")
 
     with col3:
@@ -166,7 +166,8 @@ with tab_inference:
         models_list = [
             m.get("model_id") if isinstance(m, dict) else m for m in models_data
         ]
-    except:
+    except Exception as e:
+        st.error(f"Error fetching models: {e}")
         models_list = []
 
     if not models_list:
@@ -184,8 +185,8 @@ with tab_inference:
                     res = requests.get(f"{API_URL}/models/{model_id}/info", timeout=5)
                     if res.status_code == 200:
                         st.json(res.json())
-                except:
-                    st.info("Info not available")
+                except Exception as e:
+                    st.error(f"Error getting model info: {e}")
 
         st.subheader("Features (JSON)")
         features_json = st.text_area(
