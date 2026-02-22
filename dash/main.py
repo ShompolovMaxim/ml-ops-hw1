@@ -10,8 +10,8 @@ st.set_page_config(page_title="ML Dashboard", layout="wide")
 
 st.title("ML Dashboard")
 
-tab_datasets, tab_training, tab_inference = st.tabs(
-    ["Datasets", "Training", "Inference"]
+tab_datasets, tab_training, tab_inference, tab_statistics = st.tabs(
+    ["Datasets", "Training", "Inference", "Statistics"]
 )
 
 with tab_datasets:
@@ -213,3 +213,64 @@ with tab_inference:
                 st.error("Invalid JSON")
             except Exception as e:
                 st.error(f"Error: {e}")
+
+
+with tab_statistics:
+    st.header("System Statistics")
+    
+    try:
+        # Get datasets count
+        res = requests.get(f"{API_URL}/datasets", timeout=5)
+        if res.status_code == 200:
+            datasets = res.json().get("datasets", [])
+            datasets_count = len(datasets)
+        else:
+            datasets_count = 0
+            st.error(f"Error fetching datasets: {res.text}")
+            
+        # Get models count and type breakdown
+        res = requests.get(f"{API_URL}/models", timeout=5)
+        if res.status_code == 200:
+            models_list = res.json().get("models", [])
+            total_models_count = len(models_list)
+            
+            # Count models by type
+            model_types = {"linear_regression": 0, "decision_tree": 0, "random_forest": 0}
+            for model in models_list:
+                if isinstance(model, dict) and "type" in model:
+                    model_type = model["type"]
+                    if model_type in model_types:
+                        model_types[model_type] += 1
+        else:
+            total_models_count = 0
+            model_types = {"linear_regression": 0, "decision_tree": 0, "random_forest": 0}
+            st.error(f"Error fetching models: {res.text}")
+            
+        # Display statistics
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.metric("Datasets Count", datasets_count)
+            
+        with col2:
+            st.metric("Models Total Count", total_models_count)
+            
+        with col3:
+            st.metric("Linear Regression Models", model_types["linear_regression"])
+            
+        # Additional breakdown
+        st.subheader("Model Type Breakdown")
+        col4, col5, col6 = st.columns(3)
+        
+        with col4:
+            st.metric("Decision Tree Models", model_types["decision_tree"])
+            
+        with col5:
+            st.metric("Random Forest Models", model_types["random_forest"])
+            
+        with col6:
+            # Show a bar chart or simple visualization if needed
+            st.write("")
+            
+    except Exception as e:
+        st.error(f"Error fetching statistics: {e}")

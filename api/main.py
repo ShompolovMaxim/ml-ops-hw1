@@ -262,6 +262,38 @@ async def list_models():
         raise HTTPException(status_code=400, detail=f"Failed to list models: {str(e)}")
 
 
+@app.get("/stats")
+async def get_statistics():
+    """Get system statistics including datasets count and model counts by type."""
+    try:
+        # Get datasets count
+        datasets = DVCManager.list_s3_datasets()
+        datasets_count = len(datasets)
+        
+        # Get models count and type breakdown
+        model_manager = get_model_manager()
+        models_list = model_manager.list_models()
+        total_models_count = len(models_list)
+        
+        # Count models by type
+        model_types = {"linear_regression": 0, "decision_tree": 0, "random_forest": 0}
+        for model in models_list:
+            if isinstance(model, dict) and "type" in model:
+                model_type = model["type"]
+                if model_type in model_types:
+                    model_types[model_type] += 1
+        
+        return {
+            "datasets_count": datasets_count,
+            "models_total_count": total_models_count,
+            "models_by_type": model_types
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to get statistics: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=400, detail=f"Failed to get statistics: {str(e)}")
+
+
 @app.get("/models/{model_id}/info")
 async def get_model_info(model_id: str):
     """Get information about specific model."""
