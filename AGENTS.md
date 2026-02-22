@@ -3,7 +3,7 @@
 - Naming: snake_case
 
 ## Rules
-- only files in api and dash directories can be edited
+- only .py files in api and dash directories and .md files in the root directory should be read and edited if necessary
 
 ## Plan & Act
 - At the first step (plan) you need to read all project files, analyze project structure and develop detailed featue implementation plan and write it into FEATURE_PLAN.md file. Plan must include (in the same order as listed further): implementation steps, testing, linting, documentation updates. On this step you should not implement anything
